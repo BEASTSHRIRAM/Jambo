@@ -4,7 +4,9 @@
  */
 
 import { JobCard, jobCardSchema, JobList, jobListSchema } from "@/components/recruitment/JobCard";
+import { CompanyCard, companyCardSchema, CompanyList, companyListSchema } from "@/components/recruitment/CompanyCard";
 import { searchJobs } from "@/services/jsearch-jobs";
+import { searchCompanies } from "@/services/glassdoor-company";
 import type { TamboComponent, TamboTool } from "@tambo-ai/react";
 import { z } from "zod";
 
@@ -18,18 +20,29 @@ When anyone asks "Who are you?" or similar questions, respond with:
 "I'm Jambo! I'm an AI assistant specially designed to help students and job seekers find great job opportunities. I was created by a student who understands the challenges of job hunting. How can I help you find your dream job today?"
 
 CAPABILITIES (for job seekers):
-- Search for jobs by role, skills, and keywords
-- Filter jobs by LOCATION (city, country, or region)
-- Filter by job type (full-time, part-time, contract, internship)
-- Filter remote-only positions
-- Filter by date posted (today, 3 days, week, month)
+- Search for jobs by role, skills, and keywords (use searchJobs)
+- Filter jobs by LOCATION, job type, remote-only, date posted
 - Display job listings with salary info and application links
+- Search for company information and ratings (use searchCompanies)
+- Show company reviews, ratings, and salary data from Glassdoor
+
+TOOL SELECTION GUIDE - VERY IMPORTANT:
+1. Use searchJobs for: Job listings, openings, hiring positions
+   Examples: "Find SDE intern jobs", "React developer positions in NYC", "Remote Python jobs"
+
+2. Use searchCompanies for: Company info, ratings, reviews, culture
+   Examples: "Is Meta a good company?", "Tell me about Google", "What's the rating for Amazon?"
 
 HOW TO USE TOOLS:
-When a job seeker asks to find jobs (e.g., "Find React developer jobs in Chicago"):
-1. Use the searchJobs tool with appropriate parameters
-2. Display the results using the JobList component
-3. Provide a brief summary of the findings with helpful tips
+For job searches:
+1. Use searchJobs with appropriate parameters
+2. Display results using JobList component
+3. Provide helpful tips about the results
+
+For company information:
+1. Use searchCompanies with the company name as query
+2. Display results using CompanyList component
+3. Summarize the rating and provide insights
 
 TONE:
 - Be encouraging and supportive
@@ -38,13 +51,13 @@ TONE:
 
 EXAMPLE INTERACTIONS:
 User: "Find me software engineer jobs in San Francisco"
-Response: Use searchJobs with query="software engineer", location="San Francisco", then display results with JobList.
+Action: Use searchJobs with query="software engineer", location="San Francisco"
 
-User: "I need remote Python developer internships"
-Response: Use searchJobs with query="Python developer", employment_type="INTERN", remote_only=true, then display results.
+User: "Is Meta a good company to work for?"
+Action: Use searchCompanies with query="Meta", then display with CompanyList
 
-User: "Show me full-time React jobs posted this week"
-Response: Use searchJobs with query="React developer", employment_type="FULLTIME", date_posted="week", then display results.`;
+User: "Tell me about companies hiring for SDE intern"
+Action: Use searchJobs with query="SDE intern" (this is looking for job listings, not company info)`;
 
 /**
  * Job Seeker-specific Tambo tools
@@ -53,12 +66,12 @@ export const jobseekerTools: TamboTool[] = [
     {
         name: "searchJobs",
         description:
-            "Search for job listings using JSearch API. Returns job listings with details like salary, company, location, and application links. Supports filtering by location, employment type, remote-only, and date posted.",
+            "Search for job listings and openings. Use this when users ask for job positions, hiring opportunities, or want to find jobs. Returns job listings with salary, company, location, and application links.",
         tool: searchJobs,
         inputSchema: z.object({
             query: z
                 .string()
-                .describe("Job search query (e.g., 'React developer', 'Python engineer', 'Data scientist')"),
+                .describe("Job search query (e.g., 'React developer', 'SDE intern', 'Data scientist')"),
             location: z
                 .string()
                 .optional()
@@ -108,6 +121,32 @@ export const jobseekerTools: TamboTool[] = [
             search_query: z.string(),
         }),
     },
+    {
+        name: "searchCompanies",
+        description:
+            "Search for company information and Glassdoor ratings. Use this when users ask about a specific company's reputation, ratings, reviews, or culture. DO NOT use for job listings - use searchJobs for that. Examples: 'Is Meta a good company?', 'Tell me about Google', 'What's Amazon's rating?'",
+        tool: searchCompanies,
+        inputSchema: z.object({
+            query: z
+                .string()
+                .describe("Company name to search for (e.g., 'Meta', 'Google', 'Amazon', 'Microsoft')"),
+        }),
+        outputSchema: z.object({
+            companies: z.array(
+                z.object({
+                    id: z.number(),
+                    shortName: z.string(),
+                    squareLogoUrl: z.string().nullable(),
+                    overallRating: z.number(),
+                    jobCount: z.number(),
+                    reviewCount: z.number(),
+                    salaryCount: z.number(),
+                })
+            ),
+            total_results: z.number(),
+            search_query: z.string(),
+        }),
+    },
 ];
 
 /**
@@ -127,5 +166,19 @@ export const jobseekerComponents: TamboComponent[] = [
             "Displays a grid of job cards with a search summary header. Best used to show results from the searchJobs tool. Pass the entire result object as props.",
         component: JobList,
         propsSchema: jobListSchema,
+    },
+    {
+        name: "CompanyCard",
+        description:
+            "Displays a single company card with logo, Glassdoor rating (stars), job count, review count, and salary count. Use for showing individual company details.",
+        component: CompanyCard,
+        propsSchema: companyCardSchema,
+    },
+    {
+        name: "CompanyList",
+        description:
+            "Displays a grid of company cards with a search summary header. Best used to show results from the searchCompanies tool. Pass the entire result object as props.",
+        component: CompanyList,
+        propsSchema: companyListSchema,
     },
 ];

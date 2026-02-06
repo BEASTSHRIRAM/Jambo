@@ -77,9 +77,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center border border-blue-500/30">
-              <span className="text-white font-bold text-xl">J</span>
-            </div>
+            <img src="/logo.png" alt="Jambo Logo" className="w-10 h-10 rounded-xl" />
             <span className="text-xl sm:text-2xl font-bold text-white">
               Jambo
             </span>
@@ -269,9 +267,7 @@ export default function Home() {
       <footer className="relative px-4 sm:px-6 py-8 sm:py-12 border-t border-white/10">
         <div className="max-w-6xl mx-auto flex flex-col items-center justify-center gap-3 sm:gap-4 text-center">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center border border-blue-500/30">
-              <span className="text-white font-bold text-sm sm:text-base">J</span>
-            </div>
+            <img src="/logo.png" alt="Jambo Logo" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg" />
             <span className="text-base sm:text-lg font-semibold text-white">Jambo</span>
           </div>
           <p className="text-gray-500 text-xs sm:text-sm">

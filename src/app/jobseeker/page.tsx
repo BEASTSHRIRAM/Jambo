@@ -28,9 +28,7 @@ export default function JobSeekerPage() {
                         </Link>
                         <div className="w-px h-6 bg-white/20" />
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center border border-blue-500/30">
-                                <span className="text-white font-bold text-lg">J</span>
-                            </div>
+                            <img src="/logo.png" alt="Jambo Logo" className="w-9 h-9 rounded-xl" />
                             <div>
                                 <h1 className="text-lg font-bold text-white">Jambo</h1>
                                 <p className="text-xs text-blue-400">Job Search Assistant</p>
