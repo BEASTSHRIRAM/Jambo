@@ -9,7 +9,7 @@ export interface InterviewContext {
     companyName: string;
     roleName: string;
     currentQuestion: string;
-    questionType: 'introduction' | 'technical' | 'behavioral' | 'situational' | 'closing';
+    questionType: 'intro' | 'technical' | 'behavioral' | 'situational' | 'closing';
     userResponse: string;
     questionNumber: number;
     totalQuestions: number;
@@ -89,7 +89,7 @@ Provide a brief, encouraging response (max 30 words).`;
  */
 function getFallbackResponse(questionType: string): string {
     const responses: Record<string, string[]> = {
-        introduction: [
+        intro: [
             "Great introduction! I appreciate you sharing that.",
             "Thank you for that overview. That's helpful context.",
             "Nice to learn more about your background.",
