@@ -409,3 +409,131 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .interview-popup {
+        width: 95vw;
+        max-height: 95vh;
+        overflow-y: auto;
+        border-radius: 16px;
+    }
+
+    .interview-video-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px;
+        min-height: auto;
+    }
+
+    .interview-panel {
+        min-height: 200px;
+    }
+
+    .interview-ai-logo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .interview-ai-label {
+        font-size: 15px;
+    }
+
+    .interview-question-display {
+        padding: 12px 16px;
+    }
+
+    .interview-question-text {
+        font-size: 14px;
+    }
+
+    .interview-question-count {
+        font-size: 12px;
+    }
+
+    .interview-controls {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px;
+    }
+
+    .interview-control-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .interview-timer {
+        padding: 8px 14px;
+        font-size: 14px;
+        order: -1;
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+
+    .interview-end-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .interview-next-btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .interview-close-btn {
+        width: 36px;
+        height: 36px;
+        top: 12px;
+        right: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .interview-popup {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .interview-video-container {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .interview-panel {
+        min-height: 160px;
+    }
+
+    .interview-ai-logo {
+        width: 60px;
+        height: 60px;
+    }
+
+    .interview-controls {
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .interview-control-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .interview-control-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .interview-timer {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .interview-end-btn,
+    .interview-next-btn {
+        flex: 1;
+        min-width: 0;
+    }
+}

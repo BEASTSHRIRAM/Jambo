@@ -80,8 +80,9 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                     "relative overflow-hidden rounded-2xl",
                     "bg-gradient-to-br from-slate-900/90 to-slate-800/90",
                     "border border-white/10 backdrop-blur-xl",
-                    "p-5 hover:border-green-500/50 transition-all duration-300",
+                    "p-4 sm:p-5 hover:border-green-500/50 transition-all duration-300",
                     "hover:shadow-lg hover:shadow-green-500/10",
+                    "w-full min-w-0",
                     className
                 )}
             >
@@ -111,7 +112,7 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                 </div>
 
                 {/* Stats grid */}
-                <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-5">
                     <div className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
                         <div className="flex items-center justify-center gap-1 text-blue-400 mb-1">
                             <Briefcase className="w-4 h-4" />
@@ -214,7 +215,7 @@ export const CompanyList = React.forwardRef<HTMLDivElement, CompanyListProps & {
                 </div>
 
                 {/* Company cards grid */}
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     {safeCompanies.map((company, index) => (
                         <motion.div
                             key={company.id || index}

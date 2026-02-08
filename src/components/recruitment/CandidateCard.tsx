@@ -66,6 +66,7 @@ export const CandidateCard = React.forwardRef<HTMLDivElement, CandidateCardProps
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
                     "group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300",
+                    "w-full min-w-0",
                     className
                 )}
             >
@@ -101,17 +102,17 @@ export const CandidateCard = React.forwardRef<HTMLDivElement, CandidateCardProps
                             </h3>
                             <p className="text-sm text-purple-600 dark:text-purple-400">@{username}</p>
                             {(location || company) && (
-                                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-xs text-gray-500">
                                     {location && (
-                                        <span className="flex items-center gap-1">
-                                            <MapPin className="w-3 h-3" />
-                                            {location}
+                                        <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-none">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                                            <span className="truncate">{location}</span>
                                         </span>
                                     )}
                                     {company && (
-                                        <span className="flex items-center gap-1">
-                                            <Building2 className="w-3 h-3" />
-                                            {company}
+                                        <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-none">
+                                            <Building2 className="w-3 h-3 flex-shrink-0" />
+                                            <span className="truncate">{company}</span>
                                         </span>
                                     )}
                                 </div>
@@ -240,7 +241,7 @@ export const CandidateList = React.forwardRef<HTMLDivElement, CandidateListProps
                 </motion.div>
 
                 {/* Candidates Grid */}
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     {candidates.map((candidate, index) => (
                         <motion.div
                             key={candidate.username}

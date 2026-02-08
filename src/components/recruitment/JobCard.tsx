@@ -103,8 +103,9 @@ export const JobCard = React.forwardRef<HTMLDivElement, JobCardProps & { classNa
                     "relative overflow-hidden rounded-2xl",
                     "bg-gradient-to-br from-slate-900/90 to-slate-800/90",
                     "border border-white/10 backdrop-blur-xl",
-                    "p-5 hover:border-blue-500/50 transition-all duration-300",
+                    "p-4 sm:p-5 hover:border-blue-500/50 transition-all duration-300",
                     "hover:shadow-lg hover:shadow-blue-500/10",
+                    "w-full min-w-0",
                     className
                 )}
             >
@@ -139,17 +140,17 @@ export const JobCard = React.forwardRef<HTMLDivElement, JobCardProps & { classNa
                 </div>
 
                 {/* Job details */}
-                <div className="flex flex-wrap items-center gap-3 mb-4 text-sm text-gray-400">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 text-sm text-gray-400">
                     <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span className="text-white">{job_location || "Location not specified"}</span>
+                        <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-white truncate max-w-[150px] sm:max-w-none">{job_location || "Location not specified"}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <Briefcase className="w-4 h-4 text-gray-500" />
+                        <Briefcase className="w-4 h-4 text-gray-500 flex-shrink-0" />
                         <span className="text-white">{formatEmploymentType(safeEmploymentType)}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-gray-500" />
+                        <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
                         <span className="text-white">{job_posted_human_readable || "Recently"}</span>
                     </div>
                 </div>
@@ -248,7 +249,7 @@ export const JobList = React.forwardRef<HTMLDivElement, JobListProps & { classNa
                 </div>
 
                 {/* Job cards grid */}
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     {safeJobs.map((job, index) => (
                         <motion.div
                             key={job.job_id || index}

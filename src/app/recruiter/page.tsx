@@ -35,9 +35,6 @@ export default function RecruiterPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="text-sm text-gray-400">
-                        Find talented developers on GitHub
-                    </div>
                 </div>
             </header>
 
