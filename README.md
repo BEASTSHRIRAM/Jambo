@@ -110,10 +110,3 @@ Build settings are auto-detected for Next.js.
 ## 📝 License
 
 MIT
-
-## 👥 Team
-
-Built by **Team STATC**
-- Arya Wadhwa
-- Dilraj Singh
-- Sriram Kulkarni
