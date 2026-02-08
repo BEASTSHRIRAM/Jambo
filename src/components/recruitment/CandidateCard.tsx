@@ -82,11 +82,19 @@ export const CandidateCard = React.forwardRef<HTMLDivElement, CandidateCardProps
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex items-start gap-4 mb-4">
-                        <img
-                            src={avatar_url}
-                            alt={name}
-                            className="w-16 h-16 rounded-xl object-cover ring-2 ring-purple-500/20"
-                        />
+                        {avatar_url ? (
+                            <img
+                                src={avatar_url}
+                                alt={name}
+                                className="w-16 h-16 rounded-xl object-cover ring-2 ring-purple-500/20"
+                            />
+                        ) : (
+                            <div className="w-16 h-16 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center ring-2 ring-purple-500/20">
+                                <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                    {name?.charAt(0)?.toUpperCase() || '?'}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
                                 {name}

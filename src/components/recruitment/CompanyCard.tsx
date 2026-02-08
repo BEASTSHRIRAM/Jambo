@@ -62,7 +62,13 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
         },
         ref
     ) => {
-        const glassdoorUrl = `https://www.glassdoor.com/Overview/Working-at-${shortName.replace(/\s+/g, '-')}-EI_IE${id}.htm`;
+        // Defensive: handle undefined props during streaming
+        const safeShortName = shortName || 'Company';
+        const safeJobCount = jobCount ?? 0;
+        const safeReviewCount = reviewCount ?? 0;
+        const safeSalaryCount = salaryCount ?? 0;
+        const safeRating = overallRating ?? 0;
+        const glassdoorUrl = `https://www.glassdoor.com/Overview/Working-at-${safeShortName.replace(/\s+/g, '-')}-EI_IE${id || 0}.htm`;
 
         return (
             <motion.div
@@ -99,7 +105,7 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-xl text-white truncate">{shortName || "Company"}</h3>
                         <div className="mt-1">
-                            <StarRating rating={overallRating} />
+                            <StarRating rating={safeRating} />
                         </div>
                     </div>
                 </div>
@@ -110,7 +116,7 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                         <div className="flex items-center justify-center gap-1 text-blue-400 mb-1">
                             <Briefcase className="w-4 h-4" />
                         </div>
-                        <p className="text-white font-bold text-lg">{jobCount.toLocaleString()}</p>
+                        <p className="text-white font-bold text-lg">{safeJobCount.toLocaleString()}</p>
                         <p className="text-gray-400 text-xs">Open Jobs</p>
                     </div>
 
@@ -118,7 +124,7 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                         <div className="flex items-center justify-center gap-1 text-purple-400 mb-1">
                             <MessageSquare className="w-4 h-4" />
                         </div>
-                        <p className="text-white font-bold text-lg">{reviewCount.toLocaleString()}</p>
+                        <p className="text-white font-bold text-lg">{safeReviewCount.toLocaleString()}</p>
                         <p className="text-gray-400 text-xs">Reviews</p>
                     </div>
 
@@ -126,7 +132,7 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                         <div className="flex items-center justify-center gap-1 text-green-400 mb-1">
                             <DollarSign className="w-4 h-4" />
                         </div>
-                        <p className="text-white font-bold text-lg">{salaryCount.toLocaleString()}</p>
+                        <p className="text-white font-bold text-lg">{safeSalaryCount.toLocaleString()}</p>
                         <p className="text-gray-400 text-xs">Salaries</p>
                     </div>
                 </div>
@@ -134,11 +140,11 @@ export const CompanyCard = React.forwardRef<HTMLDivElement, CompanyCardProps & {
                 {/* Rating interpretation */}
                 <div className="mb-4 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
                     <p className="text-green-300 text-sm">
-                        {overallRating >= 4 && "⭐ Highly rated company - employees love working here!"}
-                        {overallRating >= 3 && overallRating < 4 && "👍 Good company - generally positive employee reviews."}
-                        {overallRating >= 2 && overallRating < 3 && "⚠️ Mixed reviews - consider researching more."}
-                        {overallRating < 2 && overallRating > 0 && "⚠️ Low ratings - proceed with caution."}
-                        {overallRating === 0 && "ℹ️ No ratings available yet."}
+                        {safeRating >= 4 && "⭐ Highly rated company - employees love working here!"}
+                        {safeRating >= 3 && safeRating < 4 && "👍 Good company - generally positive employee reviews."}
+                        {safeRating >= 2 && safeRating < 3 && "⚠️ Mixed reviews - consider researching more."}
+                        {safeRating < 2 && safeRating > 0 && "⚠️ Low ratings - proceed with caution."}
+                        {safeRating === 0 && "ℹ️ No ratings available yet."}
                     </p>
                 </div>
 

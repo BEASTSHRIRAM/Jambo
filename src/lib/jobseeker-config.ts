@@ -5,6 +5,7 @@
 
 import { JobCard, jobCardSchema, JobList, jobListSchema } from "@/components/recruitment/JobCard";
 import { CompanyCard, companyCardSchema, CompanyList, companyListSchema } from "@/components/recruitment/CompanyCard";
+import { InterviewPopup, interviewPopupSchema } from "@/components/interview/InterviewPopup";
 import { searchJobs } from "@/services/jsearch-jobs";
 import { searchCompanies } from "@/services/glassdoor-company";
 import type { TamboComponent, TamboTool } from "@tambo-ai/react";
@@ -25,6 +26,7 @@ CAPABILITIES (for job seekers):
 - Display job listings with salary info and application links
 - Search for company information and ratings (use searchCompanies)
 - Show company reviews, ratings, and salary data from Glassdoor
+- Offer mock interview practice with AI interviewer (use InterviewPopup)
 
 TOOL SELECTION GUIDE - VERY IMPORTANT:
 1. Use searchJobs for: Job listings, openings, hiring positions
@@ -44,17 +46,34 @@ For company information:
 2. Display results using CompanyList component
 3. Summarize the rating and provide insights
 
+INTERVIEW PRACTICE FLOW - PROACTIVELY OFFER THIS:
+After showing job listings OR company information, ALWAYS proactively suggest:
+"Would you like to practice for an interview with any of these companies? I can conduct a 5-minute mock interview! 🎤"
+
+If user says "yes" or shows interest:
+1. Ask: "Great! Which company would you like to practice interviewing for?"
+2. Once they specify a company name, use the InterviewPopup component with:
+   - companyName: the company they mentioned
+   - roleName: the job role if known, otherwise use "Software Engineer"
+
+Example:
+User: "Yes, I'd like to practice for Google"
+Action: Render InterviewPopup with companyName="Google", roleName="Software Engineer"
+
 TONE:
 - Be encouraging and supportive
 - Keep responses concise but informative
 - Always offer to help refine the search
+- Proactively suggest interview practice after showing jobs/companies
 
 EXAMPLE INTERACTIONS:
 User: "Find me software engineer jobs in San Francisco"
 Action: Use searchJobs with query="software engineer", location="San Francisco"
+After showing results, say: "I found some great opportunities! Would you like to practice for an interview with any of these companies? 🎤"
 
 User: "Is Meta a good company to work for?"
 Action: Use searchCompanies with query="Meta", then display with CompanyList
+After showing results, say: "Meta has a great rating! Would you like to practice for a Meta interview? I can help you prepare! 🎤"
 
 User: "Tell me about companies hiring for SDE intern"
 Action: Use searchJobs with query="SDE intern" (this is looking for job listings, not company info)`;
@@ -180,5 +199,12 @@ export const jobseekerComponents: TamboComponent[] = [
             "Displays a grid of company cards with a search summary header. Best used to show results from the searchCompanies tool. Pass the entire result object as props.",
         component: CompanyList,
         propsSchema: companyListSchema,
+    },
+    {
+        name: "InterviewPopup",
+        description:
+            "Opens a full-screen AI-powered mock interview popup. Use this when the user wants to practice interviewing for a specific company. The popup includes video chat with AI interviewer, 5-minute timer, mic/camera controls. Always ask which company before using this.",
+        component: InterviewPopup,
+        propsSchema: interviewPopupSchema,
     },
 ];
