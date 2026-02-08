@@ -1,131 +1,119 @@
-# Tambo Template
+# Jambo - AI-Powered Career Platform
 
-This is a starter NextJS app with Tambo hooked up to get your AI app development started quickly.
+Jambo is an intelligent career development platform that bridges the gap between job seekers and recruiters using cutting-edge AI technology. Built with Next.js and Tambo AI, Jambo transforms the job hunting and hiring experience through automation and intelligent matching.
 
-## Get Started
+## ✨ Features
 
-1. Run `npm create-tambo@latest my-tambo-app` for a new project
+### For Job Seekers
+- **AI Mock Interview Coach** - Practice with a realistic AI interviewer using speech-to-text and text-to-speech
+- **Intelligent Job Discovery** - Find opportunities powered by multiple data sources
+- **Company Insights** - Get comprehensive information about potential employers
 
-2. `npm install`
+### For Recruiters
+- **AI-Assisted Candidate Sourcing** - Aggregate talent data from GitHub and professional networks
+- **Smart Matching** - View candidate profiles with match scores and relevant skills
+- **Streamlined Pipeline** - Manage recruitment with structured job and candidate cards
 
-3. `npx tambo init`
+## 🛠️ Tech Stack
 
-- or rename `example.env.local` to `.env.local` and add your tambo API key you can get for free [here](https://tambo.co/dashboard).
+- **Framework**: Next.js 15 with App Router
+- **AI Integration**: [Tambo AI SDK](https://tambo.co) for conversational interfaces
+- **Speech**: Deepgram (TTS/STT) for real-time audio processing
+- **LLM**: Groq for fast AI interview responses
+- **Styling**: Tailwind CSS with dark mode support
+- **Data Sources**: GitHub API, RapidAPI, Exa, Firecrawl
 
-4. Run `npm run dev` and go to `localhost:3000` to use the app!
+## 🚀 Getting Started
 
-## Customizing
+### Prerequisites
+- Node.js 18+
+- npm or yarn
 
-### Change what components tambo can control
+### Installation
 
-You can see how components are registered with tambo in `src/lib/tambo.ts`:
-
-```tsx
-export const components: TamboComponent[] = [
-  {
-    name: "Graph",
-    description:
-      "A component that renders various types of charts (bar, line, pie) using Recharts. Supports customizable data visualization with labels, datasets, and styling options.",
-    component: Graph,
-    propsSchema: graphSchema,
-  },
-  // Add more components here
-];
-```
-
-You can install the graph component into any project with:
-
+1. Clone the repository
 ```bash
-npx tambo add graph
+git clone https://github.com/BEASTSHRIRAM/Jambo.git
+cd Jambo
 ```
 
-The example Graph component demonstrates several key features:
-
-- Different prop types (strings, arrays, enums, nested objects)
-- Multiple chart types (bar, line, pie)
-- Customizable styling (variants, sizes)
-- Optional configurations (title, legend, colors)
-- Data visualization capabilities
-
-Update the `components` array with any component(s) you want tambo to be able to use in a response!
-
-You can find more information about the options [here](https://docs.tambo.co/concepts/generative-interfaces/generative-components)
-
-### Add tools for tambo to use
-
-Tools are defined with `inputSchema` and `outputSchema`:
-
-```tsx
-export const tools: TamboTool[] = [
-  {
-    name: "globalPopulation",
-    description:
-      "A tool to get global population trends with optional year range filtering",
-    tool: getGlobalPopulationTrend,
-    inputSchema: z.object({
-      startYear: z.number().optional(),
-      endYear: z.number().optional(),
-    }),
-    outputSchema: z.array(
-      z.object({
-        year: z.number(),
-        population: z.number(),
-        growthRate: z.number(),
-      }),
-    ),
-  },
-];
+2. Install dependencies
+```bash
+npm install
 ```
 
-Find more information about tools [here.](https://docs.tambo.co/concepts/tools)
-
-### The Magic of Tambo Requires the TamboProvider
-
-Make sure in the TamboProvider wrapped around your app:
-
-```tsx
-...
-<TamboProvider
-  apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
-  components={components} // Array of components to control
-  tools={tools} // Array of tools it can use
->
-  {children}
-</TamboProvider>
+3. Set up environment variables
+```bash
+cp example.env.local .env.local
 ```
 
-In this example we do this in the `Layout.tsx` file, but you can do it anywhere in your app that is a client component.
-
-### Voice input
-
-The template includes a `DictationButton` component using the `useTamboVoice` hook for speech-to-text input.
-
-### MCP (Model Context Protocol)
-
-The template includes MCP support for connecting to external tools and resources. You can use the MCP hooks from `@tambo-ai/react/mcp`:
-
-- `useTamboMcpPromptList` - List available prompts from MCP servers
-- `useTamboMcpPrompt` - Get a specific prompt
-- `useTamboMcpResourceList` - List available resources
-
-See `src/components/tambo/mcp-components.tsx` for example usage.
-
-### Change where component responses are shown
-
-The components used by tambo are shown alongside the message response from tambo within the chat thread, but you can have the result components show wherever you like by accessing the latest thread message's `renderedComponent` field:
-
-```tsx
-const { thread } = useTambo();
-const latestComponent =
-  thread?.messages[thread.messages.length - 1]?.renderedComponent;
-
-return (
-  <div>
-    {latestComponent && (
-      <div className="my-custom-wrapper">{latestComponent}</div>
-    )}
-  </div>
-);
+Add your API keys to `.env.local`:
+```env
+NEXT_PUBLIC_TAMBO_API_KEY=your_tambo_key
+NEXT_PUBLIC_DEEPGRAM_API_KEY=your_deepgram_key
+NEXT_PUBLIC_GROQ_API_KEY=your_groq_key
+RAPIDAPI_KEY=your_rapidapi_key
+GITHUB_TOKEN=your_github_token
+EXA_API_KEY=your_exa_key
+FIRECRAWL_API_KEY=your_firecrawl_key
 ```
 
-For more detailed documentation, visit [Tambo's official docs](https://docs.tambo.co).
+4. Run the development server
+```bash
+npm run dev
+```
+
+5. Open [http://localhost:3000](http://localhost:3000)
+
+## 🤖 How We Use Tambo
+
+Tambo powers our AI chat experience, making job hunting and recruiting feel like talking to a smart assistant. Instead of clicking through menus, users simply type what they need—"find React developers in San Francisco" or "show me trending tech jobs"—and Tambo understands and responds with interactive cards and real-time results.
+
+We registered custom tools and components that let Tambo search GitHub for talent, fetch company insights, and display job listings dynamically. The SDK handles conversation threads, message history, and state management, so our AI remembers context across sessions.
+
+### Tambo Configuration
+
+Components and tools are registered in:
+- `src/lib/tambo.ts` - Global configuration
+- `src/lib/jobseeker-config.ts` - Job seeker specific tools
+- `src/lib/recruiter-config.ts` - Recruiter specific tools
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── jobseeker/         # Job seeker dashboard
+│   ├── recruiter/         # Recruiter dashboard
+│   └── page.tsx           # Landing page
+├── components/
+│   ├── interview/         # AI interview components
+│   ├── recruitment/       # Job & candidate cards
+│   ├── tambo/             # Tambo UI components
+│   └── ui/                # Shared UI components
+├── hooks/                  # Custom React hooks
+├── lib/                    # Utilities & configs
+└── services/              # API integrations
+```
+
+## 🎯 Deployment
+
+### Vercel (Recommended)
+
+1. Push to GitHub
+2. Import project in [Vercel](https://vercel.com)
+3. Add environment variables in project settings
+4. Deploy!
+
+Build settings are auto-detected for Next.js.
+
+## 📝 License
+
+MIT
+
+## 👥 Team
+
+Built by **Team STATC**
+- Arya Wadhwa
+- Dilraj Singh
+- Sriram Kulkarni
