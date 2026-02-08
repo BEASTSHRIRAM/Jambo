@@ -5,9 +5,31 @@ Jambo is an intelligent career development platform that bridges the gap between
 ## ✨ Features
 
 ### For Job Seekers
-- **AI Mock Interview Coach** - Practice with a realistic AI interviewer using speech-to-text and text-to-speech
+- **AI Mock Interview Coach** - Practice with a realistic AI interviewer that provides:
+  - 🎙️ Real-time speech-to-text and natural text-to-speech conversation
+  - ⏱️ 60 seconds per question with interactive back-and-forth dialogue
+  - 📊 **Comprehensive Feedback Report** at the end including:
+    - Overall performance score out of 10
+    - 💪 Strengths you demonstrated
+    - 📈 Areas for improvement
+    - 💡 Tips for your next interview
+    - 📝 Question-by-question detailed feedback
+
+#### Interview Feedback Screenshots
+
+<p align="center">
+  <img src="public/docs/feedback-score.png" alt="Interview Score & Feedback" width="600"/>
+</p>
+<p align="center"><em>Overall score with strengths and areas for improvement</em></p>
+
+<p align="center">
+  <img src="public/docs/feedback-questions.png" alt="Question-by-Question Feedback" width="600"/>
+</p>
+<p align="center"><em>Detailed question-by-question performance analysis</em></p>
+
 - **Intelligent Job Discovery** - Find opportunities powered by multiple data sources
 - **Company Insights** - Get comprehensive information about potential employers
+
 
 ### For Recruiters
 - **AI-Assisted Candidate Sourcing** - Aggregate talent data from GitHub and professional networks

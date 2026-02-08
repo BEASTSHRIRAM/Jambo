@@ -8,16 +8,44 @@ import {
     INTERVIEW_DURATION,
     type InterviewQuestion,
 } from '@/services/interview-questions';
-import { generateInterviewerResponse, type InterviewContext } from '@/services/groq-interview';
+import {
+    generateInterviewerResponse,
+    generateConversationalResponse,
+    generateInterviewFeedback,
+    type InterviewContext,
+    type FeedbackContext,
+} from '@/services/groq-interview';
 
-// Time per question in seconds (50 seconds to allow for transition)
-const QUESTION_DURATION = 50;
-// Silence threshold to detect user finished speaking (3 seconds)
-const SILENCE_THRESHOLD = 3000;
+// Time per question in seconds (60 seconds for natural conversation)
+const QUESTION_DURATION = 60;
+// Response delay - AI responds within 2 seconds of user speech
+const AI_RESPONSE_DELAY = 2000;
+// Minimum words before AI responds conversationally
+const MIN_WORDS_FOR_RESPONSE = 5;
+
+export interface ConversationTurn {
+    speaker: 'ai' | 'user';
+    text: string;
+    timestamp: number;
+}
+
+export interface InterviewFeedback {
+    overallRating: number;
+    overallAssessment: string;
+    strengths: string[];
+    areasForImprovement: string[];
+    tipsForNextTime: string[];
+    questionFeedback: {
+        question: string;
+        userResponse: string;
+        feedback: string;
+    }[];
+}
 
 export interface InterviewState {
     isActive: boolean;
     isPaused: boolean;
+    isComplete: boolean;
     currentQuestionIndex: number;
     timeRemaining: number;
     companyName: string;
@@ -28,6 +56,9 @@ export interface InterviewState {
     aiSpeaking: boolean;
     error: string | null;
     questionTimeLeft: number;
+    conversation: ConversationTurn[];
+    feedback: InterviewFeedback | null;
+    isGeneratingFeedback: boolean;
 }
 
 export interface UseInterviewReturn extends InterviewState {
@@ -40,12 +71,16 @@ export interface UseInterviewReturn extends InterviewState {
 }
 
 /**
- * Hook for managing interview session with AI responses via Groq
+ * Hook for managing interview session with natural conversation flow
+ * - 60 seconds per question
+ * - AI responds within 2 seconds during conversation
+ * - Comprehensive feedback at the end
  */
 export function useInterview(): UseInterviewReturn {
     const [state, setState] = useState<InterviewState>({
         isActive: false,
         isPaused: false,
+        isComplete: false,
         currentQuestionIndex: 0,
         timeRemaining: INTERVIEW_DURATION,
         companyName: '',
@@ -56,6 +91,9 @@ export function useInterview(): UseInterviewReturn {
         aiSpeaking: false,
         error: null,
         questionTimeLeft: QUESTION_DURATION,
+        conversation: [],
+        feedback: null,
+        isGeneratingFeedback: false,
     });
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -63,9 +101,10 @@ export function useInterview(): UseInterviewReturn {
     const sttRef = useRef<DeepgramSTT | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const questionTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const hasSpokenRef = useRef<boolean>(false);
+    const responseTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isAdvancingRef = useRef<boolean>(false);
+    const hasRespondedToCurrentSpeechRef = useRef<boolean>(false);
+    const lastTranscriptRef = useRef<string>('');
     const stateRef = useRef(state);
 
     // Keep stateRef in sync
@@ -78,14 +117,14 @@ export function useInterview(): UseInterviewReturn {
         ttsQueueRef.current = new TTSQueue({
             onStart: () => {
                 setState(prev => ({ ...prev, aiSpeaking: true }));
-                if (silenceTimerRef.current) {
-                    clearTimeout(silenceTimerRef.current);
+                // Stop response timer when AI is speaking
+                if (responseTimerRef.current) {
+                    clearTimeout(responseTimerRef.current);
                 }
             },
             onEnd: () => {
                 setState(prev => ({ ...prev, aiSpeaking: false }));
-                resetQuestionTimer();
-                hasSpokenRef.current = false;
+                hasRespondedToCurrentSpeechRef.current = false;
             },
         });
 
@@ -94,8 +133,8 @@ export function useInterview(): UseInterviewReturn {
         };
     }, []);
 
-    // Question auto-advance timer
-    const resetQuestionTimer = useCallback(() => {
+    // Question countdown timer
+    const startQuestionTimer = useCallback(() => {
         if (questionTimerRef.current) {
             clearInterval(questionTimerRef.current);
         }
@@ -116,23 +155,9 @@ export function useInterview(): UseInterviewReturn {
     useEffect(() => {
         if (state.isActive && !state.aiSpeaking && state.questionTimeLeft === 0 && !isAdvancingRef.current) {
             isAdvancingRef.current = true;
-            advanceToNextQuestion();
+            advanceToNextQuestion(true); // true = time ran out
         }
     }, [state.questionTimeLeft, state.isActive, state.aiSpeaking]);
-
-    // Silence detection - if user stops speaking for 3 seconds
-    const startSilenceDetection = useCallback(() => {
-        if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
-        }
-
-        silenceTimerRef.current = setTimeout(() => {
-            const currentState = stateRef.current;
-            if (hasSpokenRef.current && !currentState.aiSpeaking && currentState.currentTranscript.trim().length > 10) {
-                advanceToNextQuestion();
-            }
-        }, SILENCE_THRESHOLD);
-    }, []);
 
     // Main interview timer
     useEffect(() => {
@@ -154,44 +179,95 @@ export function useInterview(): UseInterviewReturn {
         };
     }, [state.isActive, state.isPaused, state.timeRemaining]);
 
-    // Handle interview end when timer reaches 0
+    // Handle interview end when overall timer reaches 0
     useEffect(() => {
         if (state.isActive && state.timeRemaining === 0) {
-            endInterviewInternal();
+            finishInterview();
         }
     }, [state.timeRemaining, state.isActive]);
 
-    const endInterviewInternal = useCallback(() => {
-        if (sttRef.current) {
-            sttRef.current.stop();
-        }
-        ttsQueueRef.current?.clear();
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (questionTimerRef.current) clearInterval(questionTimerRef.current);
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-
-        setState(prev => ({
-            ...prev,
-            isActive: false,
-            isPaused: false,
-            aiSpeaking: false,
-        }));
-    }, []);
-
     /**
-     * Advance to next question with AI response
+     * Generate conversational AI response within 2 seconds of user speech
      */
-    const advanceToNextQuestion = useCallback(async () => {
+    const generateConversationalReply = useCallback(async (userSpeech: string) => {
         const currentState = stateRef.current;
 
-        if (isAdvancingRef.current && currentState.questionTimeLeft > 0) {
+        if (currentState.aiSpeaking || hasRespondedToCurrentSpeechRef.current) {
             return;
         }
 
-        isAdvancingRef.current = true;
+        const currentQuestion = currentState.questions[currentState.currentQuestionIndex];
+        if (!currentQuestion) return;
 
-        if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
+        hasRespondedToCurrentSpeechRef.current = true;
+
+        try {
+            const response = await generateConversationalResponse({
+                companyName: currentState.companyName,
+                roleName: currentState.roleName,
+                currentQuestion: currentQuestion.question,
+                questionType: currentQuestion.type,
+                userResponse: userSpeech,
+                questionNumber: currentState.currentQuestionIndex + 1,
+                totalQuestions: currentState.questions.length,
+            });
+
+            // Add to conversation history
+            setState(prev => ({
+                ...prev,
+                conversation: [
+                    ...prev.conversation,
+                    { speaker: 'user', text: userSpeech, timestamp: Date.now() },
+                    { speaker: 'ai', text: response, timestamp: Date.now() },
+                ],
+            }));
+
+            // Speak the response
+            ttsQueueRef.current?.add(response);
+        } catch (error) {
+            console.error('Failed to generate conversational response:', error);
+        }
+    }, []);
+
+    /**
+     * Handle user speech - trigger AI response after brief pause
+     */
+    const handleUserSpeech = useCallback((transcript: string) => {
+        const currentState = stateRef.current;
+
+        // Don't respond if AI is speaking or interview is paused
+        if (currentState.aiSpeaking || currentState.isPaused) {
+            return;
+        }
+
+        // Count words in the new transcript
+        const wordCount = transcript.trim().split(/\s+/).length;
+
+        // Only respond if user has said enough
+        if (wordCount >= MIN_WORDS_FOR_RESPONSE && !hasRespondedToCurrentSpeechRef.current) {
+            // Clear any existing response timer
+            if (responseTimerRef.current) {
+                clearTimeout(responseTimerRef.current);
+            }
+
+            // Set timer to respond in 2 seconds
+            responseTimerRef.current = setTimeout(() => {
+                generateConversationalReply(transcript);
+            }, AI_RESPONSE_DELAY);
+        }
+    }, [generateConversationalReply]);
+
+    /**
+     * Advance to next question
+     */
+    const advanceToNextQuestion = useCallback(async (timeRanOut: boolean = false) => {
+        const currentState = stateRef.current;
+
+        if (questionTimerRef.current) {
+            clearInterval(questionTimerRef.current);
+        }
+        if (responseTimerRef.current) {
+            clearTimeout(responseTimerRef.current);
         }
 
         const currentQuestion = currentState.questions[currentState.currentQuestionIndex];
@@ -207,44 +283,22 @@ export function useInterview(): UseInterviewReturn {
             ],
         }));
 
-        // Check if interview is over
+        // Check if interview is complete
         if (nextIndex >= currentState.questions.length) {
-            ttsQueueRef.current?.add("That concludes our mock interview. Thank you for practicing with me today! You did great!");
-            setState(prev => ({ ...prev, isActive: false, currentTranscript: '' }));
-            isAdvancingRef.current = false;
+            finishInterview();
             return;
         }
 
-        // Generate AI response to user's answer using Groq
-        let aiResponse = "Good answer.";
-
-        if (userTranscript.length > 5) {
-            try {
-                const context: InterviewContext = {
-                    companyName: currentState.companyName,
-                    roleName: currentState.roleName,
-                    currentQuestion: currentQuestion?.question || '',
-                    questionType: currentQuestion?.type || 'behavioral',
-                    userResponse: userTranscript,
-                    questionNumber: currentState.currentQuestionIndex + 1,
-                    totalQuestions: currentState.questions.length,
-                };
-
-                aiResponse = await generateInterviewerResponse(context);
-            } catch (error) {
-                console.error('Failed to get AI response:', error);
-                aiResponse = "Thank you for that response.";
-            }
-        } else {
-            aiResponse = "Let's move on to the next question.";
-        }
+        // Transition message
+        let transitionMessage = timeRanOut
+            ? "Alright, let's move on to the next question."
+            : "Great, let's continue.";
 
         // Get next question
         const nextQuestion = currentState.questions[nextIndex];
+        const fullMessage = `${transitionMessage} ${nextQuestion.question}`;
 
-        // Speak AI response + next question
-        const fullResponse = `${aiResponse} Next question. ${nextQuestion.question}`;
-        ttsQueueRef.current?.add(fullResponse);
+        ttsQueueRef.current?.add(fullMessage);
 
         // Update state for next question
         setState(prev => ({
@@ -252,13 +306,73 @@ export function useInterview(): UseInterviewReturn {
             currentQuestionIndex: nextIndex,
             currentTranscript: '',
             questionTimeLeft: QUESTION_DURATION,
+            conversation: [
+                ...prev.conversation,
+                { speaker: 'ai', text: nextQuestion.question, timestamp: Date.now() },
+            ],
         }));
 
-        hasSpokenRef.current = false;
+        hasRespondedToCurrentSpeechRef.current = false;
+        lastTranscriptRef.current = '';
 
+        // Start the timer for the new question after TTS finishes
         setTimeout(() => {
             isAdvancingRef.current = false;
-        }, 500);
+            startQuestionTimer();
+        }, 1000);
+    }, [startQuestionTimer]);
+
+    /**
+     * Finish interview and generate comprehensive feedback
+     */
+    const finishInterview = useCallback(async () => {
+        const currentState = stateRef.current;
+
+        // Stop all timers and services
+        if (sttRef.current) {
+            sttRef.current.stop();
+        }
+        ttsQueueRef.current?.clear();
+        if (timerRef.current) clearInterval(timerRef.current);
+        if (questionTimerRef.current) clearInterval(questionTimerRef.current);
+        if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+
+        setState(prev => ({
+            ...prev,
+            isActive: false,
+            isComplete: true,
+            aiSpeaking: false,
+            isGeneratingFeedback: true,
+        }));
+
+        // Speak conclusion
+        ttsQueueRef.current?.add("That concludes our interview. Let me prepare your feedback...");
+
+        // Generate comprehensive feedback
+        try {
+            const feedbackContext: FeedbackContext = {
+                companyName: currentState.companyName,
+                roleName: currentState.roleName,
+                questions: currentState.questions.map(q => q.question),
+                responses: currentState.userResponses.map(r => r.response),
+                conversation: currentState.conversation,
+            };
+
+            const feedback = await generateInterviewFeedback(feedbackContext);
+
+            setState(prev => ({
+                ...prev,
+                feedback,
+                isGeneratingFeedback: false,
+            }));
+        } catch (error) {
+            console.error('Failed to generate feedback:', error);
+            setState(prev => ({
+                ...prev,
+                isGeneratingFeedback: false,
+                error: 'Failed to generate feedback',
+            }));
+        }
     }, []);
 
     const setMediaStream = useCallback((stream: MediaStream | null) => {
@@ -270,11 +384,13 @@ export function useInterview(): UseInterviewReturn {
         const questions = generateInterviewQuestions(companyName, role);
 
         isAdvancingRef.current = false;
-        hasSpokenRef.current = false;
+        hasRespondedToCurrentSpeechRef.current = false;
+        lastTranscriptRef.current = '';
 
         setState({
             isActive: true,
             isPaused: false,
+            isComplete: false,
             currentQuestionIndex: 0,
             timeRemaining: INTERVIEW_DURATION,
             companyName,
@@ -285,6 +401,9 @@ export function useInterview(): UseInterviewReturn {
             aiSpeaking: false,
             error: null,
             questionTimeLeft: QUESTION_DURATION,
+            conversation: [],
+            feedback: null,
+            isGeneratingFeedback: false,
         });
 
         // Start STT
@@ -292,14 +411,14 @@ export function useInterview(): UseInterviewReturn {
             try {
                 sttRef.current = createSTT();
                 sttRef.current.onTranscript((result) => {
-                    hasSpokenRef.current = true;
-
                     if (result.isFinal) {
                         setState(prev => ({
                             ...prev,
                             currentTranscript: prev.currentTranscript + ' ' + result.transcript,
                         }));
-                        startSilenceDetection();
+                        // Trigger conversational response
+                        const fullTranscript = stateRef.current.currentTranscript + ' ' + result.transcript;
+                        handleUserSpeech(fullTranscript.trim());
                     }
                 });
                 sttRef.current.onError((error) => {
@@ -311,27 +430,40 @@ export function useInterview(): UseInterviewReturn {
             }
         }
 
-        // Ask first question
+        // Ask first question with intro
         if (questions.length > 0) {
-            const intro = `Welcome! I'm your AI interviewer for the ${role} position at ${companyName}. Let's begin. ${questions[0].question}`;
+            const intro = `Welcome! I'm your AI interviewer for the ${role} position at ${companyName}. We'll have about 60 seconds per question, so take your time to answer. Let's begin. ${questions[0].question}`;
             await ttsQueueRef.current?.add(intro);
+
+            // Add to conversation
+            setState(prev => ({
+                ...prev,
+                conversation: [
+                    { speaker: 'ai', text: intro, timestamp: Date.now() },
+                ],
+            }));
+
+            // Start the question timer after TTS finishes
+            setTimeout(() => {
+                startQuestionTimer();
+            }, 500);
         }
-    }, [startSilenceDetection]);
+    }, [handleUserSpeech, startQuestionTimer]);
 
     const endInterview = useCallback(() => {
-        endInterviewInternal();
-        ttsQueueRef.current?.add("Thank you for practicing with me today. Good luck with your interview!");
-    }, [endInterviewInternal]);
+        finishInterview();
+    }, [finishInterview]);
 
     const pauseInterview = useCallback(() => {
         setState(prev => ({ ...prev, isPaused: true }));
         sttRef.current?.stop();
         if (questionTimerRef.current) clearInterval(questionTimerRef.current);
+        if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
     }, []);
 
     const resumeInterview = useCallback(async () => {
         setState(prev => ({ ...prev, isPaused: false }));
-        resetQuestionTimer();
+        startQuestionTimer();
 
         if (mediaStreamRef.current && sttRef.current) {
             try {
@@ -340,10 +472,13 @@ export function useInterview(): UseInterviewReturn {
                 console.error('STT resume error:', error);
             }
         }
-    }, [resetQuestionTimer]);
+    }, [startQuestionTimer]);
 
     const nextQuestion = useCallback(() => {
-        advanceToNextQuestion();
+        if (!isAdvancingRef.current) {
+            isAdvancingRef.current = true;
+            advanceToNextQuestion(false);
+        }
     }, [advanceToNextQuestion]);
 
     return {

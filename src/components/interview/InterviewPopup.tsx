@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { z } from "zod";
-import { X, Mic, MicOff, Video, VideoOff, AlertCircle, ChevronRight } from "lucide-react";
+import { X, Mic, MicOff, Video, VideoOff, AlertCircle, ChevronRight, Star, TrendingUp, Lightbulb, Target, Award } from "lucide-react";
 import { useMediaStream } from "@/hooks/useMediaStream";
 import { useInterview } from "@/hooks/useInterview";
 import { formatTime } from "@/services/interview-questions";
@@ -24,6 +24,10 @@ export type InterviewPopupProps = z.infer<typeof interviewPopupSchema> & {
 
 /**
  * InterviewPopup Component - AI-powered mock interview with video
+ * Features:
+ * - 60 seconds per question
+ * - Natural back-and-forth conversation (AI responds within 2s)
+ * - Comprehensive feedback at the end
  */
 export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupProps>(
     ({ companyName, roleName, onClose }, ref) => {
@@ -48,12 +52,16 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
         // Interview hook
         const {
             isActive,
+            isComplete,
             currentQuestionIndex,
             timeRemaining,
             questions,
             aiSpeaking,
             questionTimeLeft,
             currentTranscript,
+            conversation,
+            feedback,
+            isGeneratingFeedback,
             error: interviewError,
             startInterview,
             endInterview,
@@ -83,16 +91,16 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
 
         // Auto-start interview when media is ready
         useEffect(() => {
-            if (stream && !isActive && !mediaError) {
+            if (stream && !isActive && !isComplete && !mediaError) {
                 startInterview(companyName, roleName);
             }
-        }, [stream, isActive, mediaError, companyName, roleName, startInterview]);
+        }, [stream, isActive, isComplete, mediaError, companyName, roleName, startInterview]);
 
         // Handle close
         const handleClose = useCallback(() => {
             endInterview();
             stopMedia();
-            setIsVisible(false); // Hide the popup
+            setIsVisible(false);
             onClose?.();
         }, [endInterview, stopMedia, onClose]);
 
@@ -100,9 +108,7 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
         const handleEndCall = useCallback(() => {
             endInterview();
             stopMedia();
-            setIsVisible(false); // Hide the popup
-            onClose?.();
-        }, [endInterview, stopMedia, onClose]);
+        }, [endInterview, stopMedia]);
 
         // Handle escape key
         useEffect(() => {
@@ -123,9 +129,25 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
         const currentQuestion = questions[currentQuestionIndex];
         const error = mediaError || interviewError;
 
+        // Render score stars
+        const renderStars = (rating: number) => {
+            const fullStars = Math.floor(rating / 2);
+            const stars = [];
+            for (let i = 0; i < 5; i++) {
+                stars.push(
+                    <Star
+                        key={i}
+                        size={20}
+                        className={i < fullStars ? "feedback-star filled" : "feedback-star"}
+                    />
+                );
+            }
+            return stars;
+        };
+
         return (
             <div ref={ref} className="interview-overlay" role="dialog" aria-modal="true">
-                <div className="interview-popup">
+                <div className={`interview-popup ${isComplete ? 'interview-complete' : ''}`}>
                     {/* Close button */}
                     <button
                         className="interview-close-btn"
@@ -149,6 +171,112 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
                                 Close
                             </button>
                         </div>
+                    ) : isComplete ? (
+                        /* Interview Complete - Show Feedback */
+                        <div className="interview-feedback-container">
+                            {isGeneratingFeedback ? (
+                                <div className="feedback-loading">
+                                    <div className="feedback-loading-spinner"></div>
+                                    <h3>Analyzing your interview...</h3>
+                                    <p>Generating comprehensive feedback</p>
+                                </div>
+                            ) : feedback ? (
+                                <>
+                                    <div className="feedback-header">
+                                        <Award size={48} className="feedback-trophy" />
+                                        <h2>Interview Complete!</h2>
+                                        <p>Here's your detailed feedback</p>
+                                    </div>
+
+                                    {/* Overall Score */}
+                                    <div className="feedback-score-section">
+                                        <div className="feedback-score">
+                                            <span className="score-number">{feedback.overallRating}</span>
+                                            <span className="score-total">/10</span>
+                                        </div>
+                                        <div className="feedback-stars">
+                                            {renderStars(feedback.overallRating)}
+                                        </div>
+                                        <p className="feedback-assessment">{feedback.overallAssessment}</p>
+                                    </div>
+
+                                    {/* Strengths */}
+                                    <div className="feedback-section">
+                                        <div className="feedback-section-header">
+                                            <TrendingUp size={20} />
+                                            <h3>💪 Strengths</h3>
+                                        </div>
+                                        <ul className="feedback-list strengths">
+                                            {feedback.strengths.map((strength, i) => (
+                                                <li key={i}>{strength}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    {/* Areas for Improvement */}
+                                    <div className="feedback-section">
+                                        <div className="feedback-section-header">
+                                            <Target size={20} />
+                                            <h3>📈 Areas for Improvement</h3>
+                                        </div>
+                                        <ul className="feedback-list improvements">
+                                            {feedback.areasForImprovement.map((area, i) => (
+                                                <li key={i}>{area}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    {/* Tips for Next Time */}
+                                    <div className="feedback-section">
+                                        <div className="feedback-section-header">
+                                            <Lightbulb size={20} />
+                                            <h3>💡 Tips for Next Time</h3>
+                                        </div>
+                                        <ul className="feedback-list tips">
+                                            {feedback.tipsForNextTime.map((tip, i) => (
+                                                <li key={i}>{tip}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    {/* Question-by-Question Feedback */}
+                                    {feedback.questionFeedback && feedback.questionFeedback.length > 0 && (
+                                        <div className="feedback-section questions-section">
+                                            <div className="feedback-section-header">
+                                                <h3>📝 Question-by-Question Feedback</h3>
+                                            </div>
+                                            <div className="question-feedback-list">
+                                                {feedback.questionFeedback.map((qf, i) => (
+                                                    <div key={i} className="question-feedback-item">
+                                                        <div className="qf-question">
+                                                            <span className="qf-number">Q{i + 1}</span>
+                                                            {qf.question}
+                                                        </div>
+                                                        <div className="qf-response">
+                                                            <strong>Your answer:</strong> {qf.userResponse}
+                                                        </div>
+                                                        <div className="qf-feedback">
+                                                            <strong>Feedback:</strong> {qf.feedback}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button className="feedback-close-btn" onClick={handleClose}>
+                                        Close Interview
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="feedback-error">
+                                    <p>Unable to generate feedback. Please try again.</p>
+                                    <button className="interview-next-btn" onClick={handleClose}>
+                                        Close
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <>
                             {/* Question display */}
@@ -163,7 +291,7 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
                                     <div className="interview-question-text">
                                         {aiSpeaking ? "🎙️ " : ""}{currentQuestion.question}
                                     </div>
-                                    {/* Question progress bar */}
+                                    {/* Question progress bar - 60 seconds */}
                                     <div style={{
                                         marginTop: 12,
                                         height: 4,
@@ -172,9 +300,9 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
                                         overflow: 'hidden'
                                     }}>
                                         <div style={{
-                                            width: `${(questionTimeLeft / 50) * 100}%`,
+                                            width: `${(questionTimeLeft / 60) * 100}%`,
                                             height: '100%',
-                                            background: questionTimeLeft > 10 ? '#06b6d4' : '#ef4444',
+                                            background: questionTimeLeft > 15 ? '#06b6d4' : questionTimeLeft > 5 ? '#f59e0b' : '#ef4444',
                                             transition: 'width 1s linear, background 0.3s',
                                         }} />
                                     </div>
@@ -292,7 +420,7 @@ export const InterviewPopup = React.forwardRef<HTMLDivElement, InterviewPopupPro
 
                                 {/* End call button */}
                                 <button className="interview-end-btn" onClick={handleEndCall}>
-                                    End call
+                                    End Interview
                                 </button>
                             </div>
                         </>
